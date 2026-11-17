@@ -1,30 +1,39 @@
 const publicVapidKey = "BMUCN1KmaOzTkG2k3tNhdQjJWNNWokLHXKt1k9oC3FoRuFopjVw7ZBUKy2YJIOsKyi4EmP5V3SEJzS9DCTFKBmk";
 
-if ("serviceWorker" in navigator) {
-    send().catch(err => console.error(err));
-}
+const statusEl = document.getElementById("status");
 
-async function send() {
-    console.log("Registering service worker...");
-    const register = await navigator.serviceWorker.register("/worker.js", {
-        scope: "/"
+document.getElementById("subscribe").addEventListener("click", () => {
+    subscribe().catch(err => {
+        console.error(err);
+        statusEl.textContent = "Error: " + err.message;
     });
-    console.log("Service Worker Registered...");
+});
 
-    console.log("Registering push...");
+async function subscribe() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        throw new Error("Push is not supported in this browser");
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+        throw new Error("Notification permission was " + permission);
+    }
+
+    const register = await navigator.serviceWorker.register("/worker.js", { scope: "/" });
+    await navigator.serviceWorker.ready;
+
     const subscription = await register.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
     });
-    console.log("Push Registered...");
 
-    console.log("Sending push subscription to server...");
-    await fetch("/subscribe", {
+    const res = await fetch("/subscribe", {
         method: "POST",
         body: JSON.stringify(subscription),
         headers: { "content-type": "application/json" }
     });
-    console.log("Push Sent...");
+    const { count } = await res.json();
+    statusEl.textContent = `Subscribed! (${count} subscriber(s) on server)`;
 }
 
 function urlBase64ToUint8Array(base64String) {
