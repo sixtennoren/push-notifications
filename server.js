@@ -15,40 +15,51 @@ webpush.setVapidDetails(
   privateVapidKey
 );
 
-// In-memory subscription store, keyed by endpoint (lost on restart)
+// In-memory store: endpoint -> { name, subscription } (lost on restart)
+// One user can have several entries (e.g. phone + laptop).
 const subscriptions = new Map();
 
 app.post("/subscribe", (req, res) => {
-  const subscription = req.body;
-  subscriptions.set(subscription.endpoint, subscription);
-  console.log(`New subscription (${subscriptions.size} total)`);
+  const { name, subscription } = req.body;
+  subscriptions.set(subscription.endpoint, { name: name || "anonymous", subscription });
+  console.log(`New subscription for "${name}" (${subscriptions.size} total)`);
   res.status(201).json({ count: subscriptions.size });
 });
 
+// List of distinct user names, for the controller dropdown
+app.get("/users", (req, res) => {
+  const names = [...new Set([...subscriptions.values()].map(s => s.name))];
+  res.json(names);
+});
+
 app.post("/fire", async (req, res) => {
+  const { to, title, body } = req.body;
   const payload = JSON.stringify({
-    title: req.body.title || "Hello from Node.js!",
-    body: req.body.body || "This is a push notification!",
+    title: title || "Hello from Node.js!",
+    body: body || "This is a push notification!",
   });
+
+  // Empty "to" = everyone
+  const targets = [...subscriptions.values()].filter(s => !to || s.name === to);
 
   let sent = 0;
   await Promise.all(
-    [...subscriptions.values()].map(sub =>
+    targets.map(({ subscription }) =>
       webpush
-        .sendNotification(sub, payload)
+        .sendNotification(subscription, payload)
         .then(() => sent++)
         .catch(err => {
           console.error("Push failed:", err.statusCode, err.body);
           // Subscription expired or unsubscribed: drop it
           if (err.statusCode === 404 || err.statusCode === 410) {
-            subscriptions.delete(sub.endpoint);
+            subscriptions.delete(subscription.endpoint);
           }
         })
     )
   );
 
-  console.log(`Fired to ${sent}/${subscriptions.size} subscribers`);
-  res.json({ sent, total: subscriptions.size });
+  console.log(`Fired to ${sent}/${targets.length} subscription(s) (to: ${to || "everyone"})`);
+  res.json({ sent, total: targets.length });
 });
 
 const port = process.env.PORT || 5000;

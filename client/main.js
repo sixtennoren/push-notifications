@@ -1,6 +1,10 @@
 const publicVapidKey = "BMUCN1KmaOzTkG2k3tNhdQjJWNNWokLHXKt1k9oC3FoRuFopjVw7ZBUKy2YJIOsKyi4EmP5V3SEJzS9DCTFKBmk";
 
 const statusEl = document.getElementById("status");
+const nameInput = document.getElementById("name");
+
+// Remember the name between visits
+try { nameInput.value = localStorage.getItem("name") || ""; } catch { }
 
 document.getElementById("subscribe").addEventListener("click", () => {
     subscribe().catch(err => {
@@ -10,6 +14,9 @@ document.getElementById("subscribe").addEventListener("click", () => {
 });
 
 async function subscribe() {
+    if (!nameInput.value.trim()) {
+        throw new Error("Please enter a name first");
+    }
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -37,9 +44,12 @@ async function subscribe() {
         applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
     });
 
+    const name = nameInput.value.trim();
+    try { localStorage.setItem("name", name); } catch { }
+
     const res = await fetch("/subscribe", {
         method: "POST",
-        body: JSON.stringify(subscription),
+        body: JSON.stringify({ name, subscription }),
         headers: { "content-type": "application/json" }
     });
     const { count } = await res.json();
