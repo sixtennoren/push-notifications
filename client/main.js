@@ -11,6 +11,16 @@ document.getElementById("subscribe").addEventListener("click", () => {
 
 async function subscribe() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        const isStandalone = window.navigator.standalone ||
+            window.matchMedia("(display-mode: standalone)").matches;
+        if (isIOS && !isStandalone) {
+            throw new Error("On iOS: tap Share → 'Add to Home Screen', then open the app from the Home Screen icon and subscribe there (requires iOS 16.4+ and HTTPS).");
+        }
+        if (!window.isSecureContext) {
+            throw new Error("Push requires HTTPS (or localhost).");
+        }
         throw new Error("Push is not supported in this browser");
     }
 
