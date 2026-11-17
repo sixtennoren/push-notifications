@@ -11,7 +11,7 @@ const publicVapidKey = "BMUCN1KmaOzTkG2k3tNhdQjJWNNWokLHXKt1k9oC3FoRuFopjVw7ZBUK
 const privateVapidKey = "roxaa0f7EDksNRnAkYT3qREoWtpYZfp4NPqtHJJ364w";
 
 webpush.setVapidDetails(
-  "example@yourdomain.org",
+  process.env.DOMAIN,
   publicVapidKey,
   privateVapidKey
 );
