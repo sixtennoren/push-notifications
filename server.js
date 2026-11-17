@@ -33,10 +33,11 @@ app.get("/users", (req, res) => {
 });
 
 app.post("/fire", async (req, res) => {
-  const { to, title, body } = req.body;
+  const { to, title, body, channel } = req.body;
   const payload = JSON.stringify({
     title: title || "Hello from Node.js!",
     body: body || "This is a push notification!",
+    channel: channel || null,
   });
 
   // Empty "to" = everyone

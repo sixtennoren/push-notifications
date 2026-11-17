@@ -23,6 +23,7 @@ document.getElementById("fire").addEventListener("click", async () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
                 to: document.getElementById("to").value,
+                channel: document.getElementById("channel").value.trim(),
                 title: document.getElementById("title").value,
                 body: document.getElementById("body").value
             })

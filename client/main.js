@@ -3,6 +3,23 @@ const publicVapidKey = "BMUCN1KmaOzTkG2k3tNhdQjJWNNWokLHXKt1k9oC3FoRuFopjVw7ZBUK
 const statusEl = document.getElementById("status");
 const nameInput = document.getElementById("name");
 
+// --- Which notification was clicked? ---
+function showClickedChannel(channel) {
+    document.getElementById("clicked").textContent =
+        channel ? `Opened from notification in channel: #${channel}` : "Opened from a notification";
+}
+
+// Case 1: app was closed, the service worker opened it with ?channel=...
+const channelParam = new URLSearchParams(location.search).get("channel");
+if (channelParam) showClickedChannel(channelParam);
+
+// Case 2: app was already open, the service worker sent us a message
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", e => {
+        if (e.data && e.data.type === "notification-click") showClickedChannel(e.data.channel);
+    });
+}
+
 // Remember the name between visits
 try { nameInput.value = localStorage.getItem("name") || ""; } catch { }
 
